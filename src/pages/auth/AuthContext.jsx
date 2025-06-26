@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }) => {
 // Custom hook to use the AuthContext
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  // you can handle the error much better
+  //TODO: you can handle the error much better
   if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };

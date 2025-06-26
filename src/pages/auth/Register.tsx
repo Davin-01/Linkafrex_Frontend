@@ -51,6 +51,7 @@ const Register: React.FC = () => {
     setLoading(true);
 
     try {
+      //TODO: add the link as a proxy in react
       const response = await axios.post('http://localhost:8000/api/auth/register/', {
         full_name: form.fullName,
         email: form.email,
