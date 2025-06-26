@@ -36,9 +36,12 @@ import NationalShipping from './pages/shipping/NationalShipping';
 import CountyShipping from './pages/shipping/CountyShipping';
 import ExpressShipping from './pages/shipping/ExpressShipping';
 
+import { Toaster } from 'react-hot-toast';
+
 const App: React.FC = () => {
   return (
-    <AuthProvider>
+    <AuthProvider>    
+      <Toaster position="top-right" />
       <div className="min-h-screen bg-black text-gold-100 flex flex-col">
         <Navbar />
         <div className="flex-grow">
