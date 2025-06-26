@@ -1,36 +1,27 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { FaEnvelope, FaLock } from 'react-icons/fa';
 import { ImSpinner2 } from 'react-icons/im';
+import { useAuth } from '../auth/AuthContext'; 
 
-const Login: React.FC = () => {
+const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const { login } = useAuth(); // 👈 use context login
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       const res = await axios.post('http://localhost:8000/api/auth/login/', form);
-      const { token, role } = res.data;
+      const { token } = res.data;
 
-      localStorage.setItem('token', token);
-      localStorage.setItem('role', role); // Save role for session
-
-      // Redirect user based on role
-      if (role === 'admin') {
-        navigate('/admin/dashboard');
-      } else if (role === 'carrier') {
-        navigate('/carrier/dashboard');
-      } else {
-        navigate('/customer/dashboard');
-      }
+      login(token); // 👈 let AuthContext handle token decoding and navigation
     } catch (err) {
       alert('❌ Invalid credentials. Please try again.');
     } finally {
@@ -79,8 +70,6 @@ const Login: React.FC = () => {
                 className="pl-10 w-full bg-black border border-[#FFD700] text-white py-2 rounded-md focus:ring-2 focus:ring-[#FFD700]/50"
               />
             </div>
-
-            
           </div>
 
           {/* Submit */}
@@ -97,19 +86,20 @@ const Login: React.FC = () => {
               'Login'
             )}
           </button>
+
           {/* Forgot Password */}
-            <div className="text-center mt-1">
-              <Link
-                to="/forgot-password"
-                className="text-sm text-gray-400 hover:text-[#FFD700] transition"
-              >
-                Forgot password?
-              </Link>
-            </div>
+          <div className="text-center mt-1">
+            <Link
+              to="/forgot-password"
+              className="text-sm text-gray-400 hover:text-[#FFD700] transition"
+            >
+              Forgot password?
+            </Link>
+          </div>
 
           {/* Register Link */}
           <p className="text-center text-sm mt-4 text-gray-400">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link to="/register" className="text-[#FFD700] font-medium hover:underline">Register</Link>
           </p>
         </form>
@@ -119,3 +109,4 @@ const Login: React.FC = () => {
 };
 
 export default Login;
+
