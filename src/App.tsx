@@ -63,25 +63,25 @@ const App: React.FC = () => {
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute allowedRoles={['customer']}>
+                // <ProtectedRoute allowedRoles={['customer']}>
                   <CustomerDashboard />
-                </ProtectedRoute>
+                // </ProtectedRoute>
               }
             />
             <Route
               path="/carrier"
               element={
-                <ProtectedRoute allowedRoles={['carrier']}>
+                // <ProtectedRoute allowedRoles={['carrier']}>
                   <CarrierDashboard />
-                </ProtectedRoute>
+                // </ProtectedRoute>
               }
             />
             <Route
               path="/admin"
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                // <ProtectedRoute allowedRoles={['admin']}>
                   <AdminDashboard />
-                </ProtectedRoute>
+                // </ProtectedRoute>
               }
             />
 

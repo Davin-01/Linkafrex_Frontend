@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.10",
+    "axios": "^1.10.0",
     "framer-motion": "^12.18.1",
     "gsap": "^3.13.0",
     "jwt-decode": "^4.0.0",
@@ -19,12 +20,14 @@
     "react": "^19.1.0",
     "react-countup": "^6.5.3",
     "react-dom": "^19.1.0",
+    "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
     "react-intersection-observer": "^9.16.0",
     "react-leaflet": "^5.0.0",
     "react-lottie": "^1.2.10",
     "react-router-dom": "^7.6.2",
     "react-tsparticles": "^2.12.2",
+    "swagger-ui": "^5.25.3",
     "tailwindcss": "^4.1.10",
     "tsparticles": "^3.8.1"
   },

@@ -114,9 +114,13 @@ const LandingPage = () => {
             >
               Start Shipping <ArrowRight className="ml-2" />
             </Link>
-            <button className="border-2 border-[#FFD700] text-[#FFD700] hover:bg-[#FFD700]/10 font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105">
+            <Link
+              to="/about"
+            className="border-2 border-[#FFD700] text-[#FFD700] hover:bg-[#FFD700]/10 font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105"
+              >
               Learn More
-            </button>
+            </Link>
+            
           </div>
         </div>
         <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black to-transparent" />
@@ -140,18 +144,24 @@ const LandingPage = () => {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {shippingLevels.map(({ title, icon, desc, path }, i) => (
-            <Link
-              to={path}
-              key={i}
-              className="bg-[#111] border border-gray-800 hover:border-[#FFD700] rounded-xl p-6 text-center transition-all duration-300 hover:shadow-lg hover:shadow-[#FFD700]/10 hover:-translate-y-2 block"
-            >
-              <div className="mx-auto mb-4 bg-[#FFD700]/10 p-3 rounded-full w-16 h-16 flex items-center justify-center">
-                {icon}
-              </div>
-              <h3 className="font-bold text-xl text-[#FFD700] mb-3">{title}</h3>
-              <p className="text-gray-400">{desc}</p>
-            </Link>
-          ))}
+  <Link
+    to={path}
+    key={i}
+    className="group bg-[#0f0f0f] border border-gray-800 rounded-xl p-6 text-center transform transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_#FFD70066] hover:border-[#FFD700] block"
+  >
+    <div className="relative mb-5 mx-auto w-20 h-20 rounded-full bg-[#FFD700]/10 flex items-center justify-center shadow-[0_0_20px_#FFD70033] group-hover:shadow-[0_0_25px_#FFD70099] transition-all duration-300">
+      <div className="absolute -inset-1 rounded-full animate-pulse bg-[#FFD700]/10 group-hover:bg-[#FFD700]/20"></div>
+      <div className="relative z-10">{icon}</div>
+    </div>
+    <h3 className="font-bold text-xl text-[#FFD700] group-hover:text-yellow-400 transition duration-300">
+      {title}
+    </h3>
+    <p className="text-gray-400 group-hover:text-gray-200 transition duration-300">
+      {desc}
+    </p>
+  </Link>
+))}
+
         </div>
       </section>
 

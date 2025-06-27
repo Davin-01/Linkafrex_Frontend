@@ -1,8 +1,9 @@
+// src/pages/shipping/InternationalShipping.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Globe, Airplay, ShieldCheck, Truck } from 'lucide-react';
 import Footer from '../../components/Footer';
-import pic1 from '../../assets/pic1.jpg'; // replace with your actual image path
+import pic1 from '../../assets/pic1.jpg';
 
 const InternationalShipping: React.FC = () => {
   return (
@@ -15,9 +16,12 @@ const InternationalShipping: React.FC = () => {
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
+        aria-label="International Shipping Hero"
       >
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl sm:text-5xl font-bold text-[#FFD700] mb-4">International Shipping</h1>
+          <h1 className="text-4xl sm:text-5xl font-bold text-[#FFD700] mb-4">
+            International Shipping
+          </h1>
           <p className="text-gray-300 text-lg sm:text-xl">
             Seamlessly ship goods across East African borders with our trusted network of air, road, and sea partners.
           </p>
@@ -57,7 +61,7 @@ const InternationalShipping: React.FC = () => {
           />
         </div>
 
-        {/* Call to Action */}
+        {/* CTA */}
         <div className="text-center mt-16">
           <h3 className="text-2xl font-semibold text-white mb-6">
             Ready to ship internationally?
@@ -65,6 +69,7 @@ const InternationalShipping: React.FC = () => {
           <Link
             to="/createshipment"
             className="bg-[#FFD700] hover:bg-yellow-500 text-black font-semibold px-8 py-3 rounded-lg transition shadow-lg"
+            aria-label="Create international shipment"
           >
             Create International Shipment
           </Link>
@@ -86,7 +91,10 @@ const FeatureCard = ({
   title: string;
   description: string;
 }) => (
-  <div className="bg-[#111] border border-gray-800 rounded-xl p-6 text-center transition-all hover:shadow-lg hover:shadow-[#FFD700]/10 hover:-translate-y-2">
+  <div
+    className="bg-[#111] border border-gray-800 rounded-xl p-6 text-center transition-all hover:shadow-lg hover:shadow-[#FFD700]/10 hover:-translate-y-2"
+    aria-label={`Feature: ${title}`}
+  >
     <div className="mb-4 mx-auto">{icon}</div>
     <h4 className="text-xl font-bold text-[#FFD700] mb-2">{title}</h4>
     <p className="text-gray-400">{description}</p>
