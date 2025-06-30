@@ -1,24 +1,41 @@
-import React, { useContext, ReactNode } from 'react';
+import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { AuthContext } from '../pages/auth/AuthContext';
+import { jwtDecode } from 'jwt-decode';
+import dayjs from 'dayjs';
+import { logout } from '../utils/logout';
 
-interface ProtectedRouteProps {
-  children: ReactNode;
+interface Props {
+  children: React.ReactNode;
   allowedRoles: string[];
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
-  const { user } = useContext(AuthContext);
+const ProtectedRoute: React.FC<Props> = ({ children, allowedRoles }) => {
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
+  if (!token || !role) {
+    return <Navigate to="/login" />;
   }
 
-  if (!allowedRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />;
-  }
+  try {
+    const decoded: any = jwtDecode(token);
+    const isExpired = dayjs.unix(decoded.exp).diff(dayjs()) < 1;
 
-  return <>{children}</>;
+    if (isExpired) {
+      logout();
+      return null;
+    }
+
+    if (!allowedRoles.includes(role)) {
+      return <Navigate to="/unauthorized" />;
+    }
+
+    return <>{children}</>;
+  } catch (err) {
+    logout();
+    return null;
+  }
 };
 
 export default ProtectedRoute;
+  

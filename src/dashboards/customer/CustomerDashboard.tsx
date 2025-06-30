@@ -1,822 +1,549 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import {
-  Package,
-  Truck,
-  MapPin,
-  Clock,
-  Calendar,
-  Search,
-  Filter,
+import React, { useState, useEffect } from 'react';
+import { 
+  Package, 
+  MapPin, 
+  Clock, 
   Bell,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  RefreshCw,
-  ArrowRight,
-  ChevronDown,
-  ChevronUp,
-  Info,
-  BarChart2,
-  CreditCard,
+  Calendar,
+  Truck,
   User,
-  Settings,
+  Search,
   Plus,
-  Download as DownloadIcon,
-  Headphones,
+  CheckCircle,
+  AlertCircle,
+  Navigation2,
+  Phone,
+  Menu,
+  X,
+  Home,
+  BarChart3,
+  Settings,
   HelpCircle,
-  FileText
+  LogOut,
+  ChevronRight,
+  Filter,
+  Download,
+  RefreshCw
 } from 'lucide-react';
-import { toast, Toaster } from 'react-hot-toast';
 
-type ShipmentStatus = 'Delivered' | 'In Transit' | 'Processing' | 'Delayed' | 'Cancelled';
-
-interface Shipment {
+interface PackageProps {
   id: string;
-  trackingNumber: string;
-  status: ShipmentStatus;
-  origin: string;
-  destination: string;
-  departureDate: string;
+  status: 'shipped' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'delayed';
+  vendor: string;
+  description: string;
   estimatedDelivery: string;
-  carrier: string;
-  serviceType: string;
-  weight: string;
-  dimensions: string;
-  value: number;
+  trackingNumber: string;
   lastUpdate: string;
-  history: {
-    date: string;
-    status: ShipmentStatus;
-    location: string;
-    description: string;
-  }[];
+  deliveryAddress: string;
+  priority: 'low' | 'medium' | 'high';
 }
 
-interface Notification {
-  id: string;
-  type: 'info' | 'warning' | 'alert';
-  message: string;
-  date: string;
-  read: boolean;
-}
-
-const CustomersDashboard: React.FC = () => {
-  const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const CustomerDashboard: React.FC = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeView, setActiveView] = useState('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ShipmentStatus | 'all'>('all');
-  const [expandedShipment, setExpandedShipment] = useState<string | null>(null);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newShipment, setNewShipment] = useState({
-    origin: '',
-    destination: '',
-    serviceType: 'Standard',
-    weight: '',
-    dimensions: '',
-    value: ''
-  });
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [selectedPackage, setSelectedPackage] = useState<PackageProps | null>(null);
 
-  // Mock data - replace with actual API calls
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Enhanced mock data
-        const mockShipments: Shipment[] = [
-          {
-            id: '1',
-            trackingNumber: 'TRK-' + Math.floor(Math.random() * 10000000),
-            status: 'In Transit',
-            origin: 'Nairobi Warehouse',
-            destination: 'Mombasa Port',
-            departureDate: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-            estimatedDelivery: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
-            carrier: 'Swift Logistics',
-            serviceType: 'Standard',
-            weight: '15 kg',
-            dimensions: '30×20×15 cm',
-            value: 25000,
-            lastUpdate: new Date().toLocaleString(),
-            history: [
-              {
-                date: new Date().toLocaleString(),
-                status: 'In Transit',
-                location: 'Nairobi Distribution Center',
-                description: 'Package departed from distribution center'
-              },
-              {
-                date: new Date(Date.now() - 86400000).toLocaleString(),
-                status: 'Processing',
-                location: 'Nairobi Warehouse',
-                description: 'Package processed and ready for shipment'
-              }
-            ]
-          },
-          // Additional mock shipments...
-        ];
+  const packages: PackageProps[] = [
+    {
+      id: 'PKG001',
+      status: 'out_for_delivery',
+      vendor: 'Amazon',
+      description: 'Wireless Bluetooth Headphones',
+      estimatedDelivery: 'Today by 6:00 PM',
+      trackingNumber: 'TRK123456789',
+      lastUpdate: '10:30 AM - Out for delivery',
+      deliveryAddress: '123 Main St, Nairobi',
+      priority: 'high'
+    },
+    {
+      id: 'PKG002',
+      status: 'delayed',
+      vendor: 'Jumia',
+      description: 'Gaming Keyboard',
+      estimatedDelivery: 'Delayed - July 1st',
+      trackingNumber: 'TRK987654321',
+      lastUpdate: '8:45 AM - Weather delay',
+      deliveryAddress: '123 Main St, Nairobi',
+      priority: 'medium'
+    },
+    {
+      id: 'PKG003',
+      status: 'delivered',
+      vendor: 'Target',
+      description: 'Kitchen Utensils Set',
+      estimatedDelivery: 'Delivered',
+      trackingNumber: 'TRK456789123',
+      lastUpdate: 'Yesterday 3:15 PM - Delivered',
+      deliveryAddress: '123 Main St, Nairobi',
+      priority: 'low'
+    },
+    {
+      id: 'PKG004',
+      status: 'in_transit',
+      vendor: 'Shopify',
+      description: 'Office Chair',
+      estimatedDelivery: 'June 30th by 2:00 PM',
+      trackingNumber: 'TRK789123456',
+      lastUpdate: '2:20 PM - In transit',
+      deliveryAddress: '456 Oak Ave, Nairobi',
+      priority: 'medium'
+    },
+    {
+      id: 'PKG005',
+      status: 'shipped',
+      vendor: 'eBay',
+      description: 'Phone Case',
+      estimatedDelivery: 'July 2nd by 5:00 PM',
+      trackingNumber: 'TRK321654987',
+      lastUpdate: '11:00 AM - Shipped',
+      deliveryAddress: '789 Pine St, Nairobi',
+      priority: 'low'
+    }
+  ];
 
-        const mockNotifications: Notification[] = [
-          {
-            id: '1',
-            type: 'info',
-            message: `Your shipment ${mockShipments[0].trackingNumber} has departed Nairobi Distribution Center`,
-            date: new Date().toLocaleString(),
-            read: false
-          },
-          // Additional mock notifications...
-        ];
-
-        setShipments(mockShipments);
-        setNotifications(mockNotifications);
-        setLoading(false);
-      } catch (err) {
-        setError('Failed to load data. Please try again later.');
-        setLoading(false);
-        console.error('Error fetching data:', err);
-        toast.error('Failed to load dashboard data');
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const filteredShipments = shipments.filter(shipment => {
-    const matchesSearch = shipment.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         shipment.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         shipment.destination.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         shipment.carrier.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || shipment.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const toggleShipmentExpansion = (shipmentId: string) => {
-    setExpandedShipment(expandedShipment === shipmentId ? null : shipmentId);
-  };
-
-  const markNotificationAsRead = (id: string) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ));
-    toast.success('Notification marked as read');
-  };
-
-  const handleCreateShipment = () => {
-    toast.promise(
-      new Promise((resolve) => {
-        setTimeout(() => {
-          const newShip: Shipment = {
-            id: (shipments.length + 1).toString(),
-            trackingNumber: 'TRK-' + Math.floor(Math.random() * 10000000),
-            status: 'Processing',
-            origin: newShipment.origin,
-            destination: newShipment.destination,
-            departureDate: new Date().toISOString().split('T')[0],
-            estimatedDelivery: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
-            carrier: ['Swift Logistics', 'Coastal Cargo', 'Highland Haulers'][Math.floor(Math.random() * 3)],
-            serviceType: newShipment.serviceType,
-            weight: newShipment.weight,
-            dimensions: newShipment.dimensions,
-            value: parseInt(newShipment.value),
-            lastUpdate: new Date().toLocaleString(),
-            history: [{
-              date: new Date().toLocaleString(),
-              status: 'Processing',
-              location: newShipment.origin,
-              description: 'Shipment created and awaiting processing'
-            }]
-          };
-          setShipments([newShip, ...shipments]);
-          setShowCreateModal(false);
-          setNewShipment({
-            origin: '',
-            destination: '',
-            serviceType: 'Standard',
-            weight: '',
-            dimensions: '',
-            value: ''
-          });
-          resolve(true);
-        }, 1500);
-      }),
-      {
-        loading: 'Creating shipment...',
-        success: 'Shipment created successfully!',
-        error: 'Failed to create shipment'
-      }
-    );
-  };
-
-  const getStatusIcon = (status: ShipmentStatus) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Delivered': return <CheckCircle className="text-emerald-500" size={18} />;
-      case 'In Transit': return <Truck className="text-blue-500" size={18} />;
-      case 'Processing': return <RefreshCw className="text-amber-500 animate-spin" size={18} />;
-      case 'Delayed': return <AlertCircle className="text-orange-500" size={18} />;
-      case 'Cancelled': return <XCircle className="text-red-500" size={18} />;
-      default: return <Info className="text-gray-500" size={18} />;
+      case 'shipped': return 'text-blue-400 bg-blue-500/20';
+      case 'in_transit': return 'text-yellow-400 bg-yellow-500/20';
+      case 'out_for_delivery': return 'text-orange-400 bg-orange-500/20';
+      case 'delivered': return 'text-green-400 bg-green-500/20';
+      case 'delayed': return 'text-red-400 bg-red-500/20';
+      default: return 'text-gray-400 bg-gray-500/20';
     }
   };
 
-  const getStatusColor = (status: ShipmentStatus) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Delivered': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'In Transit': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'Processing': return 'bg-amber-100 text-amber-800 border-amber-200';
-      case 'Delayed': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'Cancelled': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'shipped': return <Package className="w-4 h-4" />;
+      case 'in_transit': return <Truck className="w-4 h-4" />;
+      case 'out_for_delivery': return <Navigation2 className="w-4 h-4" />;
+      case 'delivered': return <CheckCircle className="w-4 h-4" />;
+      case 'delayed': return <AlertCircle className="w-4 h-4" />;
+      default: return <Package className="w-4 h-4" />;
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'High': return 'text-red-500';
-      case 'Medium': return 'text-amber-500';
-      case 'Low': return 'text-emerald-500';
-      default: return 'text-gray-500';
+      case 'high': return 'border-l-red-500';
+      case 'medium': return 'border-l-yellow-500';
+      case 'low': return 'border-l-green-500';
+      default: return 'border-l-gray-500';
     }
   };
 
-  const refreshData = () => {
-    toast.promise(
-      new Promise((resolve) => {
-        setTimeout(() => {
-          // In a real app, this would refetch from API
-          setLoading(false);
-          resolve(true);
-        }, 1000);
-      }),
-      {
-        loading: 'Refreshing data...',
-        success: 'Data refreshed!',
-        error: 'Failed to refresh data'
-      }
-    );
+  const formatStatus = (status: string) => {
+    return status.split('_').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
   };
 
-  if (loading && shipments.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+  const filteredPackages = packages.filter(pkg => {
+    const matchesSearch = pkg.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pkg.vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pkg.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesFilter = filterStatus === 'all' || pkg.status === filterStatus;
+    
+    return matchesSearch && matchesFilter;
+  });
 
-  if (error) {
-    return (
-      <div className="p-4 bg-red-100 text-red-800 rounded-lg max-w-md mx-auto mt-8 border border-red-200">
-        <div className="flex items-center gap-2">
-          <AlertCircle size={20} />
-          <h3 className="font-bold">Error loading dashboard</h3>
+  const stats = {
+    total: packages.length,
+    active: packages.filter(p => p.status !== 'delivered').length,
+    outForDelivery: packages.filter(p => p.status === 'out_for_delivery').length,
+    delivered: packages.filter(p => p.status === 'delivered').length,
+    delayed: packages.filter(p => p.status === 'delayed').length
+  };
+
+  const sidebarItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Home },
+    { id: 'packages', label: 'All Packages', icon: Package },
+    { id: 'tracking', label: 'Live Tracking', icon: MapPin },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'help', label: 'Help & Support', icon: HelpCircle }
+  ];
+
+  // Close sidebar when clicking outside on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const Sidebar = () => (
+    <>
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <div className={`fixed left-0 top-0 h-full w-64 bg-gray-900 border-r border-yellow-500/20 transform transition-transform duration-300 ease-in-out z-50 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      } md:translate-x-0 md:static md:z-auto`}>
+        <div className="p-4 border-b border-yellow-500/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
+                <Truck className="w-5 h-5 text-black" />
+              </div>
+              <h1 className="text-lg font-bold text-yellow-400">LogiTrack</h1>
+            </div>
+            <button 
+              onClick={() => setSidebarOpen(false)}
+              className="md:hidden p-1 text-gray-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
-        <p className="mt-2">{error}</p>
-        <button 
-          onClick={() => window.location.reload()}
-          className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-        >
-          Retry
+
+        <nav className="p-4">
+          <div className="space-y-2">
+            {sidebarItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveView(item.id);
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                  activeView === item.id
+                    ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </nav>
+
+        <div className="absolute bottom-4 left-4 right-4">
+          <div className="bg-gray-800 rounded-lg p-3 mb-3">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+                <User className="w-4 h-4 text-black" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white">Sarah Johnson</p>
+                <p className="text-xs text-gray-400">Premium User</p>
+              </div>
+            </div>
+          </div>
+          <button className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">
+            <LogOut className="w-5 h-5" />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+
+  const Header = () => (
+    <header className="bg-gray-900 border-b border-yellow-500/20 px-4 py-3 md:px-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <button 
+            onClick={() => setSidebarOpen(true)}
+            className="md:hidden p-2 text-gray-400 hover:text-white"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <h2 className="text-lg font-semibold text-white capitalize">
+            {activeView === 'dashboard' ? 'Dashboard Overview' : activeView.replace('_', ' ')}
+          </h2>
+        </div>
+        
+        <div className="flex items-center space-x-3">
+          <button className="p-2 text-gray-400 hover:text-white transition-colors">
+            <RefreshCw className="w-5 h-5" />
+          </button>
+          <button className="relative p-2 text-gray-400 hover:text-white transition-colors">
+            <Bell className="w-5 h-5" />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+
+  const StatsCards = () => (
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div className="bg-gray-900 border border-yellow-500/20 rounded-xl p-4">
+        <Package className="w-6 h-6 text-yellow-500 mb-2" />
+        <p className="text-2xl font-bold text-white">{stats.total}</p>
+        <p className="text-sm text-gray-400">Total Packages</p>
+      </div>
+      <div className="bg-gray-900 border border-yellow-500/20 rounded-xl p-4">
+        <Truck className="w-6 h-6 text-blue-400 mb-2" />
+        <p className="text-2xl font-bold text-white">{stats.active}</p>
+        <p className="text-sm text-gray-400">Active</p>
+      </div>
+      <div className="bg-gray-900 border border-yellow-500/20 rounded-xl p-4">
+        <Navigation2 className="w-6 h-6 text-orange-400 mb-2" />
+        <p className="text-2xl font-bold text-white">{stats.outForDelivery}</p>
+        <p className="text-sm text-gray-400">Out for Delivery</p>
+      </div>
+      <div className="bg-gray-900 border border-yellow-500/20 rounded-xl p-4">
+        <CheckCircle className="w-6 h-6 text-green-400 mb-2" />
+        <p className="text-2xl font-bold text-white">{stats.delivered}</p>
+        <p className="text-sm text-gray-400">Delivered</p>
+      </div>
+      <div className="bg-gray-900 border border-yellow-500/20 rounded-xl p-4">
+        <AlertCircle className="w-6 h-6 text-red-400 mb-2" />
+        <p className="text-2xl font-bold text-white">{stats.delayed}</p>
+        <p className="text-sm text-gray-400">Delayed</p>
+      </div>
+    </div>
+  );
+
+  const SearchAndFilter = () => (
+    <div className="mb-6">
+      <div className="flex flex-col md:flex-row gap-4 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search packages, vendors, or tracking numbers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-gray-800 border border-yellow-500/20 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
+          />
+        </div>
+        <button className="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2">
+          <Plus className="w-4 h-4" />
+          <span>Add Package</span>
         </button>
       </div>
-    );
-  }
+      
+      <div className="flex items-center space-x-2 overflow-x-auto pb-2">
+        <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
+        {['all', 'shipped', 'in_transit', 'out_for_delivery', 'delivered', 'delayed'].map((status) => (
+          <button
+            key={status}
+            onClick={() => setFilterStatus(status)}
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+              filterStatus === status 
+                ? 'bg-yellow-500 text-black' 
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            {status === 'all' ? 'All' : formatStatus(status)}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const PackageList = () => (
+    <div className="space-y-4">
+      {filteredPackages.map((pkg) => (
+        <div 
+          key={pkg.id}
+          className={`bg-gray-900 border border-yellow-500/20 rounded-xl p-4 hover:border-yellow-500/40 transition-all duration-300 cursor-pointer border-l-4 ${getPriorityColor(pkg.priority)}`}
+          onClick={() => setSelectedPackage(pkg)}
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex-1">
+              <div className="flex items-center space-x-2 mb-2">
+                <span className="text-sm font-medium text-gray-400">{pkg.vendor}</span>
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(pkg.status)}`}>
+                  {getStatusIcon(pkg.status)}
+                  <span className="ml-1">{formatStatus(pkg.status)}</span>
+                </span>
+              </div>
+              <h3 className="font-semibold text-white mb-1">{pkg.description}</h3>
+              <p className="text-sm text-gray-400 mb-2">#{pkg.trackingNumber}</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+          </div>
+
+          <div className="bg-black/30 rounded-lg p-3 mb-3">
+            <div className="flex items-center space-x-2 mb-2">
+              <Clock className="w-4 h-4 text-yellow-500" />
+              <span className="text-sm font-medium text-yellow-400">{pkg.estimatedDelivery}</span>
+            </div>
+            <div className="flex items-start space-x-2">
+              <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+              <span className="text-sm text-gray-300">{pkg.deliveryAddress}</span>
+            </div>
+          </div>
+
+          <div className="text-xs text-gray-500 mb-3">
+            Last Update: {pkg.lastUpdate}
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <button 
+              onClick={(e) => e.stopPropagation()}
+              className="bg-blue-600 hover:bg-blue-700 rounded-lg py-2 px-3 text-sm font-medium transition-colors"
+            >
+              Track
+            </button>
+            <button 
+              onClick={(e) => e.stopPropagation()}
+              className="bg-gray-700 hover:bg-gray-600 rounded-lg py-2 px-3 text-sm font-medium transition-colors"
+            >
+              Reschedule
+            </button>
+            <button 
+              onClick={(e) => e.stopPropagation()}
+              className="bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg py-2 px-3 text-sm font-medium transition-colors"
+            >
+              Contact
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {filteredPackages.length === 0 && (
+        <div className="text-center py-12">
+          <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-400 mb-2">No packages found</h3>
+          <p className="text-gray-500 mb-4">Try adjusting your search or filter</p>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderContent = () => {
+    switch (activeView) {
+      case 'dashboard':
+      case 'packages':
+        return (
+          <div>
+            <StatsCards />
+            <SearchAndFilter />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-yellow-400">Recent Packages</h3>
+              <span className="text-sm text-gray-400">{filteredPackages.length} items</span>
+            </div>
+            <PackageList />
+          </div>
+        );
+      
+      case 'tracking':
+        return (
+          <div className="text-center py-12">
+            <MapPin className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">Live Tracking</h3>
+            <p className="text-gray-400 mb-6">Real-time package tracking coming soon</p>
+            <button className="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-3 rounded-lg font-medium transition-colors">
+              Enable Live Tracking
+            </button>
+          </div>
+        );
+      
+      case 'analytics':
+        return (
+          <div className="text-center py-12">
+            <BarChart3 className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">Analytics Dashboard</h3>
+            <p className="text-gray-400 mb-6">Detailed insights and reports</p>
+            <button className="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-3 rounded-lg font-medium transition-colors">
+              View Analytics
+            </button>
+          </div>
+        );
+      
+      default:
+        return (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Settings className="w-8 h-8 text-yellow-500" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">{activeView.charAt(0).toUpperCase() + activeView.slice(1)}</h3>
+            <p className="text-gray-400">This section is under development</p>
+          </div>
+        );
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Toast Notifications */}
-      <Toaster position="top-right" />
+    <div className="flex h-screen bg-black text-white">
+      <Sidebar />
+      
+      <div className="flex-1 flex flex-col overflow-hidden md:ml-0">
+        <Header />
+        
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          {renderContent()}
+        </main>
+      </div>
 
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Logistics Portal</h1>
-              <p className="text-sm text-gray-500">Track your shipments in real-time</p>
+      {/* Package Details Modal */}
+      {selectedPackage && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gray-900 border-b border-yellow-500/20 p-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-yellow-400">Package Details</h2>
+              <button 
+                onClick={() => setSelectedPackage(null)}
+                className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <button 
-                onClick={refreshData}
-                disabled={loading}
-                className="flex items-center space-x-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
-              >
-                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-                <span>Refresh</span>
-              </button>
-              
-              <button 
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-              >
-                <Bell size={20} className="text-gray-600" />
-                {notifications.filter(n => !n.read).length > 0 && (
-                  <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {notifications.filter(n => !n.read).length}
+            <div className="p-4 space-y-4">
+              <div className="bg-gray-800 rounded-lg p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="font-semibold text-white mb-1">{selectedPackage.description}</h3>
+                    <p className="text-sm text-gray-400">{selectedPackage.vendor}</p>
+                    <p className="text-xs text-gray-500">#{selectedPackage.trackingNumber}</p>
+                  </div>
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedPackage.status)}`}>
+                    {getStatusIcon(selectedPackage.status)}
+                    <span className="ml-1">{formatStatus(selectedPackage.status)}</span>
                   </span>
-                )}
-              </button>
-              
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 flex items-center justify-center text-white">
-                  <User size={16} />
                 </div>
-                <span className="text-sm font-medium">Customer</span>
               </div>
-            </div>
-          </div>
-        </div>
-      </header>
 
-      {/* Notifications Panel */}
-      {showNotifications && (
-        <div className="fixed right-4 top-16 z-50 w-80 bg-white rounded-lg shadow-xl border border-gray-200">
-          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="font-medium text-gray-900">Notifications</h3>
-            <button 
-              onClick={() => setShowNotifications(false)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              ×
-            </button>
-          </div>
-          <div className="max-h-96 overflow-y-auto">
-            {notifications.length > 0 ? (
-              notifications.map(notification => (
-                <div 
-                  key={notification.id}
-                  className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
-                    !notification.read ? 'bg-blue-50' : ''
-                  }`}
-                  onClick={() => markNotificationAsRead(notification.id)}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`mt-1 flex-shrink-0 h-3 w-3 rounded-full ${
-                      notification.type === 'info' ? 'bg-blue-500' :
-                      notification.type === 'warning' ? 'bg-amber-500' : 'bg-red-500'
-                    }`} />
-                    <div>
-                      <p className="text-sm">{notification.message}</p>
-                      <p className="text-xs text-gray-500 mt-1">{notification.date}</p>
-                    </div>
+              <div className="bg-gray-800 rounded-lg p-4">
+                <h4 className="font-medium text-yellow-400 mb-3">Delivery Information</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <Clock className="w-4 h-4 text-yellow-500" />
+                    <span>{selectedPackage.estimatedDelivery}</span>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+                    <span className="text-gray-300">{selectedPackage.deliveryAddress}</span>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="p-4 text-center text-gray-500">
-                No notifications
               </div>
-            )}
-          </div>
-          <div className="p-3 bg-gray-50 text-center border-t border-gray-200">
-            <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-              View all notifications
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* Create Shipment Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Create New Shipment</h3>
-                <button 
-                  onClick={() => setShowCreateModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ×
+              <div className="grid grid-cols-2 gap-3">
+                <button className="bg-blue-600 hover:bg-blue-700 rounded-lg py-3 px-4 text-sm font-medium transition-colors flex items-center justify-center space-x-2">
+                  <Navigation2 className="w-4 h-4" />
+                  <span>Track Live</span>
                 </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Origin</label>
-                  <input
-                    type="text"
-                    value={newShipment.origin}
-                    onChange={(e) => setNewShipment({...newShipment, origin: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Nairobi Warehouse"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Destination</label>
-                  <input
-                    type="text"
-                    value={newShipment.destination}
-                    onChange={(e) => setNewShipment({...newShipment, destination: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Mombasa Port"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Service Type</label>
-                  <select
-                    value={newShipment.serviceType}
-                    onChange={(e) => setNewShipment({...newShipment, serviceType: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="Standard">Standard</option>
-                    <option value="Express">Express</option>
-                    <option value="Priority">Priority</option>
-                  </select>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Weight</label>
-                    <input
-                      type="text"
-                      value={newShipment.weight}
-                      onChange={(e) => setNewShipment({...newShipment, weight: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="15 kg"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Dimensions</label>
-                    <input
-                      type="text"
-                      value={newShipment.dimensions}
-                      onChange={(e) => setNewShipment({...newShipment, dimensions: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="30×20×15 cm"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Declared Value (KSh)</label>
-                  <input
-                    type="number"
-                    value={newShipment.value}
-                    onChange={(e) => setNewShipment({...newShipment, value: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="25000"
-                  />
-                </div>
-              </div>
-              
-              <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreateShipment}
-                  disabled={!newShipment.origin || !newShipment.destination}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Create Shipment
+                <button className="bg-green-600 hover:bg-green-700 rounded-lg py-3 px-4 text-sm font-medium transition-colors flex items-center justify-center space-x-2">
+                  <Phone className="w-4 h-4" />
+                  <span>Call Driver</span>
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
-
-      <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Total Shipments</p>
-                <p className="text-2xl font-bold mt-1">{shipments.length}</p>
-                <p className="text-xs text-gray-500 mt-1">+12% from last month</p>
-              </div>
-              <div className="bg-blue-100 p-3 rounded-full">
-                <Package className="text-blue-600" size={20} />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">In Transit</p>
-                <p className="text-2xl font-bold mt-1">
-                  {shipments.filter(s => s.status === 'In Transit').length}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">3 expected today</p>
-              </div>
-              <div className="bg-blue-100 p-3 rounded-full">
-                <Truck className="text-blue-600" size={20} />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Delivered</p>
-                <p className="text-2xl font-bold mt-1">
-                  {shipments.filter(s => s.status === 'Delivered').length}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">98% on-time rate</p>
-              </div>
-              <div className="bg-green-100 p-3 rounded-full">
-                <CheckCircle className="text-green-600" size={20} />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Issues</p>
-                <p className="text-2xl font-bold mt-1">
-                  {shipments.filter(s => s.status === 'Delayed' || s.status === 'Cancelled').length}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">2 needing attention</p>
-              </div>
-              <div className="bg-red-100 p-3 rounded-full">
-                <AlertCircle className="text-red-600" size={20} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Shipments Table */}
-        <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden mb-8">
-          <div className="p-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <h2 className="text-lg font-semibold text-gray-900">Your Shipments</h2>
-            
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <input
-                  type="text"
-                  placeholder="Search shipments..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as ShipmentStatus | 'all')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="all">All Status</option>
-                <option value="Processing">Processing</option>
-                <option value="In Transit">In Transit</option>
-                <option value="Delivered">Delivered</option>
-                <option value="Delayed">Delayed</option>
-                <option value="Cancelled">Cancelled</option>
-              </select>
-              
-              <button 
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-              >
-                <Plus size={16} />
-                <span>New</span>
-              </button>
-            </div>
-          </div>
-          
-          <div className="overflow-x-auto">
-            {filteredShipments.length > 0 ? (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tracking #
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Route
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estimated Delivery
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Last Update
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredShipments.map((shipment) => (
-                    <React.Fragment key={shipment.id}>
-                      <tr 
-                        className="hover:bg-gray-50 cursor-pointer"
-                        onClick={() => toggleShipmentExpansion(shipment.id)}
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="font-medium text-blue-600">{shipment.trackingNumber}</div>
-                          <div className="text-sm text-gray-500 flex items-center gap-1">
-                            <span>{shipment.serviceType}</span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded ${getPriorityColor(
-                              shipment.serviceType === 'Express' ? 'High' : 
-                              shipment.serviceType === 'Priority' ? 'Medium' : 'Low'
-                            )}`}>
-                              {shipment.serviceType === 'Express' ? 'High' : 
-                               shipment.serviceType === 'Priority' ? 'Medium' : 'Low'} priority
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            {getStatusIcon(shipment.status)}
-                            <span className={`px-2 py-1 text-xs rounded-full border ${getStatusColor(shipment.status)}`}>
-                              {shipment.status}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <MapPin size={14} className="text-gray-400" />
-                            <span className="truncate max-w-xs">{shipment.origin}</span>
-                            <ArrowRight size={14} className="text-gray-400" />
-                            <MapPin size={14} className="text-gray-400" />
-                            <span className="truncate max-w-xs">{shipment.destination}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <Calendar size={14} className="text-gray-400" />
-                            <span>{shipment.estimatedDelivery}</span>
-                            {shipment.status === 'Delayed' && (
-                              <span className="text-xs text-amber-600">(Delayed)</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {shipment.lastUpdate}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button 
-                            className="text-blue-600 hover:text-blue-900"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleShipmentExpansion(shipment.id);
-                            }}
-                          >
-                            {expandedShipment === shipment.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                          </button>
-                        </td>
-                      </tr>
-                      
-                      {expandedShipment === shipment.id && (
-                        <tr>
-                          <td colSpan={6} className="px-6 py-4 bg-gray-50">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                              <div className="col-span-1">
-                                <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                                  <Info size={16} className="text-blue-500" />
-                                  Shipment Details
-                                </h4>
-                                <div className="space-y-3 text-sm">
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-500">Carrier:</span>
-                                    <span className="font-medium">{shipment.carrier}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-500">Weight:</span>
-                                    <span className="font-medium">{shipment.weight}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-500">Dimensions:</span>
-                                    <span className="font-medium">{shipment.dimensions}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-500">Value:</span>
-                                    <span className="font-mono font-medium">KSh {shipment.value.toLocaleString()}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-500">Departure Date:</span>
-                                    <span className="font-medium">{shipment.departureDate}</span>
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="col-span-2">
-                                <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                                  <Clock size={16} className="text-blue-500" />
-                                  Tracking History
-                                </h4>
-                                <div className="space-y-4">
-                                  {shipment.history.map((event, index) => (
-                                    <div key={index} className="flex gap-4">
-                                      <div className="flex flex-col items-center">
-                                        <div className={`h-3 w-3 rounded-full ${
-                                          event.status === 'Delivered' ? 'bg-green-500' :
-                                          event.status === 'In Transit' ? 'bg-blue-500' :
-                                          event.status === 'Processing' ? 'bg-amber-500' :
-                                          event.status === 'Delayed' ? 'bg-orange-500' :
-                                          'bg-red-500'
-                                        }`} />
-                                        {index < shipment.history.length - 1 && (
-                                          <div className="w-px h-full bg-gray-300"></div>
-                                        )}
-                                      </div>
-                                      <div className="pb-4 flex-1">
-                                        <div className="flex justify-between">
-                                          <span className="font-medium">{event.status}</span>
-                                          <span className="text-sm text-gray-500">{event.date}</span>
-                                        </div>
-                                        <p className="text-sm text-gray-600 mt-1 flex items-center gap-1">
-                                          <MapPin size={12} className="text-gray-400" />
-                                          {event.location}
-                                        </p>
-                                        <p className="text-sm text-gray-500 mt-1">{event.description}</p>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="p-8 text-center">
-                <Package className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No shipments found</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  {searchTerm || statusFilter !== 'all' 
-                    ? "Try adjusting your search or filter criteria."
-                    : "You don't have any shipments yet."}
-                </p>
-                <button 
-                  onClick={() => setShowCreateModal(true)}
-                  className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                >
-                  Create New Shipment
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-blue-100 p-3 rounded-full">
-                <FileText className="text-blue-600" size={18} />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900">Generate Reports</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">Export your shipment history, invoices, and analytics</p>
-            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors">
-              Download Reports
-            </button>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-green-100 p-3 rounded-full">
-                <CreditCard className="text-green-600" size={18} />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900">Billing & Payments</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">View invoices, make payments, and manage billing</p>
-            <button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors">
-              View Billing
-            </button>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-purple-100 p-3 rounded-full">
-                <HelpCircle className="text-purple-600" size={18} />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900">Support Center</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">Get help with shipments, claims, and account issues</p>
-            <button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition-colors">
-              Contact Support
-            </button>
-          </div>
-        </div>
-      </main>
     </div>
   );
 };
 
-export default CustomersDashboard;
+export default CustomerDashboard;

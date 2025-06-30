@@ -10,6 +10,7 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import NotFound from './pages/NotFound';
+import Unauthorized from './pages/Unauthorized'; // ✅ Add this page
 
 import About from './pages/About';
 import Services from './pages/Services';
@@ -52,6 +53,9 @@ const App: React.FC = () => {
             <Route path="/services" element={<Services />} />
             <Route path="/contact" element={<Contact />} />
 
+            {/* Unauthorized Access */}
+            <Route path="/unauthorized" element={<Unauthorized />} />
+
             {/* Shipping Routes */}
             <Route path="/shipping/:level" element={<ShippingDetail />} />
             <Route path="/shipping/international" element={<InternationalShipping />} />
@@ -63,29 +67,29 @@ const App: React.FC = () => {
             <Route
               path="/dashboard"
               element={
-                // <ProtectedRoute allowedRoles={['customer']}>
+                <ProtectedRoute allowedRoles={['customer']}>
                   <CustomerDashboard />
-                // </ProtectedRoute>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/carrier"
               element={
-                // <ProtectedRoute allowedRoles={['carrier']}>
+                <ProtectedRoute allowedRoles={['carrier']}>
                   <CarrierDashboard />
-                // </ProtectedRoute>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/admin"
               element={
-                // <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={['admin']}>
                   <AdminDashboard />
-                // </ProtectedRoute>
+                </ProtectedRoute>
               }
             />
 
-            {/* Nested Dashboard Routes (example under customer) */}
+            {/* Dashboard Subpages */}
             <Route
               path="/dashboard/create"
               element={
