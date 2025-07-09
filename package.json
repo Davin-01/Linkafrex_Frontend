@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.10",
+    "@types/recharts": "^1.8.29",
     "axios": "^1.10.0",
     "dayjs": "^1.11.13",
     "framer-motion": "^12.18.1",
@@ -27,7 +28,9 @@
     "react-leaflet": "^5.0.0",
     "react-lottie": "^1.2.10",
     "react-router-dom": "^7.6.2",
+    "react-toastify": "^11.0.5",
     "react-tsparticles": "^2.12.2",
+    "react-window": "^1.8.11",
     "recharts": "^3.0.2",
     "swagger-ui": "^5.25.3",
     "tailwindcss": "^4.1.10",

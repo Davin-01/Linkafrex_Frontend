@@ -14,7 +14,7 @@ const ForgotPassword: React.FC = () => {
     setMessage(null);
 
     try {
-      await axios.post('http://localhost:8000/api/auth/forgot-password/', { email });
+      await axios.post('https://linkafrex.onrender.com/api/v1/forgot-password/', { email });
       setMessage({ type: 'success', text: 'Password reset link sent to your email.' });
     } catch (err) {
       setMessage({ type: 'error', text: 'Failed to send reset link. Please check your email.' });

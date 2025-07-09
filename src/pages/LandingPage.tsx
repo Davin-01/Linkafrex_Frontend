@@ -10,55 +10,57 @@ import {
   Package,
   Headphones,
   Map,
+  Quote,
+  Star,
 } from 'lucide-react';
-import img1 from '../assets/img1.jpg';
+import logisticsBg from '../assets/img1.jpg';
 import Footer from '../components/Footer';
 
 const shippingLevels = [
   {
     title: 'International Shipping',
-    icon: <Globe className="w-6 h-6 text-[#FFD700]" />,
-    desc: 'Cross-border shipping across East Africa.',
+    icon: <Globe className="w-6 h-6 text-[#800000]" />,
+    desc: 'Cross-border shipping across East Africa',
     path: '/shipping/international',
   },
   {
     title: 'National Courier',
-    icon: <Truck className="w-6 h-6 text-[#FFD700]" />,
-    desc: 'Nationwide delivery within Kenya.',
+    icon: <Truck className="w-6 h-6 text-[#800000]" />,
+    desc: 'Nationwide delivery within Kenya',
     path: '/shipping/national',
   },
   {
     title: 'County/State Deliveries',
-    icon: <MapPin className="w-6 h-6 text-[#FFD700]" />,
-    desc: 'Local county deliveries in 24–48 hrs.',
+    icon: <MapPin className="w-6 h-6 text-[#800000]" />,
+    desc: 'Local county deliveries in 24–48 hrs',
     path: '/shipping/county-level',
   },
   {
     title: 'Errand Service',
-    icon: <Clock className="w-6 h-6 text-[#FFD700]" />,
-    desc: 'Same-day priority delivery & errands.',
+    icon: <Clock className="w-6 h-6 text-[#800000]" />,
+    desc: 'Same-day priority delivery & errands',
     path: '/shipping/express',
   },
 ];
 
 const keyFeatures = [
   {
-    icon: <Shield className="w-8 h-8 text-[#FFD700]" />,
+    icon: <Shield className="w-8 h-8 text-[#800000]" />,
     title: 'Secure Shipping',
     desc: 'End-to-end package protection',
   },
   {
-    icon: <Package className="w-8 h-8 text-[#FFD700]" />,
+    icon: <Package className="w-8 h-8 text-[#800000]" />,
     title: 'Real-Time Tracking',
     desc: 'Live GPS package monitoring',
   },
   {
-    icon: <Headphones className="w-8 h-8 text-[#FFD700]" />,
+    icon: <Headphones className="w-8 h-8 text-[#800000]" />,
     title: '24/7 Support',
     desc: 'Always available customer service',
   },
   {
-    icon: <Map className="w-8 h-8 text-[#FFD700]" />,
+    icon: <Map className="w-8 h-8 text-[#800000]" />,
     title: 'Wide Coverage',
     desc: 'Across 5+ East African countries',
   },
@@ -73,128 +75,191 @@ const trustStats = [
 
 const testimonials = [
   {
-    quote:
-      'LinkaFrex transformed our supply chain with their reliable cross-border deliveries.',
+    quote: 'LinkaFrex transformed our supply chain with their reliable cross-border deliveries.',
     author: 'Jane Muthoni, Nairobi',
+    role: 'Logistics Manager',
+    rating: 5
   },
   {
     quote: 'The real-time tracking gives me peace of mind for all my shipments.',
     author: 'David Omondi, Kampala',
+    role: 'Business Owner',
+    rating: 5
   },
   {
     quote: 'Express delivery saved us during a critical business deadline.',
     author: 'Sarah Niyonkuru, Kigali',
+    role: 'Operations Director',
+    rating: 4
   },
 ];
 
 const LandingPage = () => {
   return (
-    <div className="bg-black text-white font-sans antialiased">
-      {/* Hero */}
+    <div className="bg-white text-gray-800 font-sans antialiased">
+      {/* Hero Section */}
       <section
-        className="relative px-4 sm:px-12 md:px-20 py-24 md:py-32 flex flex-col items-center justify-center"
-        style={{
-          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${img1})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundAttachment: 'fixed',
-        }}
+  className="relative flex items-center justify-center px-6 sm:px-12 md:px-20 py-24 md:py-32 min-h-[85vh]"
+  style={{
+    backgroundImage: `linear-gradient(rgba(128, 0, 0, 0.85), rgba(128, 0, 0, 0.85)), url(${logisticsBg})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+  }}
+>
+  <div className="max-w-5xl mx-auto text-center text-white flex flex-col items-center space-y-6 animate-fade-in">
+    <div className="inline-block bg-white/20 backdrop-blur-md px-6 py-2 rounded-full border border-white/30 shadow-sm">
+      <p className="text-sm font-medium tracking-wide">
+        East Africa's Leading Logistics Platform
+      </p>
+    </div>
+
+    <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight drop-shadow-md">
+      <span className="text-white">LinkaFrex</span> Logistics Solutions
+    </h1>
+
+    <p className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed">
+      Revolutionizing East African logistics with seamless, secure, and transparent delivery services.
+    </p>
+
+    <div className="flex flex-wrap justify-center gap-4 pt-4">
+      <Link
+        to="/register"
+        className="bg-white text-[#800000] hover:bg-gray-100 font-semibold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center gap-2"
       >
-        <div className="max-w-4xl mx-auto text-center z-10">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6">
-            <span className="text-[#FFD700]">LinkaFrex</span> Logistics Solutions
-          </h1>
-          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            Revolutionizing East African logistics with seamless, secure, and transparent delivery services.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link
-              to="/register"
-              className="bg-[#FFD700] hover:bg-yellow-500 text-black font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-yellow-500/20 flex items-center"
-            >
-              Start Shipping <ArrowRight className="ml-2" />
-            </Link>
-            <Link
-              to="/about"
-            className="border-2 border-[#FFD700] text-[#FFD700] hover:bg-[#FFD700]/10 font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105"
-              >
-              Learn More
-            </Link>
-            
-          </div>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black to-transparent" />
-      </section>
+        Start Shipping <ArrowRight className="w-5 h-5" />
+      </Link>
+      <Link
+        to="/about"
+        className="border-2 border-white text-white hover:bg-white/10 font-semibold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
+      >
+        Learn More <ArrowRight className="w-5 h-5" />
+      </Link>
+    </div>
+  </div>
+</section>
+
 
       {/* Stats */}
-      <div className="bg-[#111] py-4 px-8 flex flex-wrap justify-center gap-6 md:gap-12 -mt-8 z-20 relative rounded-t-lg mx-4">
+      <div className="bg-white py-8 px-6 flex flex-wrap justify-center gap-8 md:gap-16 -mt-10 z-20 rounded-t-3xl shadow-lg mx-4">
         {trustStats.map(([value, label], i) => (
-          <div key={i} className="text-center">
-            <div className="text-2xl font-bold text-[#FFD700]">{value}</div>
-            <div className="text-gray-400 text-sm">{label}</div>
+          <div key={i} className="text-center px-4 py-2">
+            <div className="text-3xl font-bold text-[#800000]">{value}</div>
+            <div className="text-gray-600 text-sm font-medium mt-1">{label}</div>
           </div>
         ))}
       </div>
 
-      {/* Shipping Options */}
-      <section className="bg-black px-4 sm:px-12 md:px-20 py-16">
-        <div className="max-w-4xl mx-auto text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4 text-[#FFD700]">Our Shipping Solutions</h2>
-          <p className="text-gray-400 text-lg">Tailored services for every delivery need across East Africa</p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {shippingLevels.map(({ title, icon, desc, path }, i) => (
-  <Link
-    to={path}
-    key={i}
-    className="group bg-[#0f0f0f] border border-gray-800 rounded-xl p-6 text-center transform transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_#FFD70066] hover:border-[#FFD700] block"
-  >
-    <div className="relative mb-5 mx-auto w-20 h-20 rounded-full bg-[#FFD700]/10 flex items-center justify-center shadow-[0_0_20px_#FFD70033] group-hover:shadow-[0_0_25px_#FFD70099] transition-all duration-300">
-      <div className="absolute -inset-1 rounded-full animate-pulse bg-[#FFD700]/10 group-hover:bg-[#FFD700]/20"></div>
-      <div className="relative z-10">{icon}</div>
+   {/* Enhanced Maroon-themed Shipping Section */}
+<section className="px-6 sm:px-12 md:px-20 py-20 bg-white">
+  <div className="max-w-6xl mx-auto">
+    {/* Section Header */}
+    <div className="text-center mb-16">
+      <h2 className="text-4xl font-extrabold text-[#800000] mb-4">Our Shipping Solutions</h2>
+      <p className="text-gray-700 max-w-2xl mx-auto text-lg">
+        Tailored services for every delivery need across East Africa — fast, safe, and reliable.
+      </p>
     </div>
-    <h3 className="font-bold text-xl text-[#FFD700] group-hover:text-yellow-400 transition duration-300">
-      {title}
-    </h3>
-    <p className="text-gray-400 group-hover:text-gray-200 transition duration-300">
-      {desc}
-    </p>
-  </Link>
-))}
 
-        </div>
-      </section>
+    {/* Maroon Cards */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
+      {shippingLevels.map(({ title, icon, desc, path }, i) => (
+        <Link
+          to={path}
+          key={i}
+          className="group relative bg-[#800000] text-white rounded-xl p-6 text-center shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+        >
+          <div className="mb-5 mx-auto w-16 h-16 rounded-full bg-white/20 flex items-center justify-center shadow-inner">
+            {icon}
+          </div>
+
+          <h3 className="font-bold text-lg mb-2 group-hover:underline underline-offset-4 decoration-white/50 transition-all duration-300">
+            {title}
+          </h3>
+          <p className="text-sm text-white/90 leading-relaxed">{desc}</p>
+
+          {/* Decorative underline on hover */}
+          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 group-hover:w-3/4 h-[2px] bg-white transition-all duration-300 rounded-full"></div>
+        </Link>
+      ))}
+    </div>
+
+    {/* Step-by-step Flow */}
+    <div className="bg-[#800000]/5 rounded-xl shadow-md p-10 mb-20">
+      <h3 className="text-2xl font-bold text-[#800000] text-center mb-10">How It Works</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 text-center">
+        {[
+          { step: '1', label: 'Create Shipment', desc: 'Enter pickup and delivery details.' },
+          { step: '2', label: 'Get Quote', desc: 'Review and accept shipping charges.' },
+          { step: '3', label: 'Track Delivery', desc: 'Get real-time updates and status.' },
+          { step: '4', label: 'Confirm Receipt', desc: 'Recipient confirms and rates service.' },
+        ].map(({ step, label, desc }) => (
+          <div key={step} className="flex flex-col items-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-[#800000] text-white flex items-center justify-center font-bold">
+              {step}
+            </div>
+            <h4 className="text-lg font-semibold text-gray-800">{label}</h4>
+            <p className="text-sm text-gray-600">{desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
 
       {/* Features */}
-      <section className="bg-[#111] px-4 sm:px-12 md:px-20 py-16">
-        <div className="max-w-4xl mx-auto text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4 text-[#FFD700]">Why Choose LinkaFrex?</h2>
-          <p className="text-gray-400 text-lg">Innovative features designed for your logistics needs</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {keyFeatures.map(({ icon, title, desc }, i) => (
-            <div
-              key={i}
-              className="bg-black p-6 rounded-xl border border-gray-800 hover:border-[#FFD700] transition-all duration-300 hover:shadow-lg hover:shadow-[#FFD700]/10"
-            >
-              <div className="mb-4">{icon}</div>
-              <h3 className="text-xl font-semibold mb-2">{title}</h3>
-              <p className="text-gray-400">{desc}</p>
-            </div>
-          ))}
+      <section className="px-6 sm:px-12 md:px-20 py-16 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4 text-[#800000]">Why Choose LinkaFrex?</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">Innovative features designed for your logistics needs</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {keyFeatures.map(({ icon, title, desc }, i) => (
+              <div
+                key={i}
+                className="bg-gray-50 p-6 rounded-lg border border-gray-200"
+              >
+                <div className="mb-4 w-12 h-12 rounded-full bg-[#800000]/10 flex items-center justify-center">
+                  {icon}
+                </div>
+                <h3 className="text-lg font-semibold mb-2 text-gray-800">{title}</h3>
+                <p className="text-gray-600 text-sm">{desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="bg-black px-4 sm:px-12 md:px-20 py-16">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12 text-[#FFD700]">What Our Clients Say</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map(({ quote, author }, i) => (
-              <div key={i} className="bg-[#111] p-6 rounded-xl border border-gray-800">
-                <div className="text-[#FFD700] text-5xl mb-2">"</div>
-                <p className="text-gray-300 italic mb-4">{quote}</p>
-                <p className="text-[#FFD700] font-medium">— {author}</p>
+      <section className="px-6 sm:px-12 md:px-20 py-16 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4 text-[#800000]">Client Testimonials</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">Hear what our customers say about our services</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {testimonials.map(({ quote, author, role, rating }, i) => (
+              <div 
+                key={i} 
+                className="bg-white p-6 rounded-lg shadow-sm border border-gray-200"
+              >
+                <Quote className="w-6 h-6 text-[#800000] mb-4 opacity-70" />
+                <p className="text-gray-700 italic mb-4">"{quote}"</p>
+                <div className="flex mb-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Star 
+                      key={i} 
+                      className={`w-4 h-4 ${i < rating ? 'text-[#800000] fill-[#800000]' : 'text-gray-300'}`} 
+                    />
+                  ))}
+                </div>
+                <div className="border-t border-gray-200 pt-3">
+                  <p className="font-semibold text-[#800000]">{author}</p>
+                  <p className="text-xs text-gray-500">{role}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -202,18 +267,26 @@ const LandingPage = () => {
       </section>
 
       {/* CTA */}
-      <section className="bg-gradient-to-r from-[#FFD700]/10 to-[#FFD700]/05 px-4 sm:px-12 md:px-20 py-16 text-center">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-3xl font-bold mb-6">Ready to Transform Your Logistics?</h2>
-          <p className="text-xl text-gray-300 mb-8">
+      <section className="px-6 sm:px-12 md:px-20 py-16 bg-[#800000] text-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl font-bold mb-4">Ready to Transform Your Logistics?</h2>
+          <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
             Join thousands of businesses across East Africa experiencing seamless shipping with LinkaFrex.
           </p>
-          <Link
-            to="/register"
-            className="bg-[#FFD700] hover:bg-yellow-500 text-black font-bold py-4 px-10 rounded-lg text-lg transition-all transform hover:scale-105 shadow-lg shadow-yellow-500/30"
-          >
-            Get Started Today
-          </Link>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link
+              to="/register"
+              className="bg-white hover:bg-gray-100 text-[#800000] font-bold py-3 px-8 rounded-lg transition-all hover:scale-105 shadow-lg flex items-center gap-2"
+            >
+              Get Started <ArrowRight className="w-5 h-5" />
+            </Link>
+            <Link
+              to="/contact"
+              className="border-2 border-white text-white hover:bg-white/10 font-bold py-3 px-8 rounded-lg transition-all hover:scale-105 flex items-center gap-2"
+            >
+              Contact Sales <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
         </div>
       </section>
 

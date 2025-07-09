@@ -1,558 +1,818 @@
-import React, { useState } from 'react';
-import { 
-  Package, 
-  MapPin, 
-  User, 
-  Calendar,
-  Clock,
-  DollarSign,
-  Truck,
-  Shield,
-  ArrowLeft,
-  Plus,
-  Minus,
-  AlertCircle,
-  CheckCircle,
-  Info
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Package, MapPin, User, Truck, Plus, X, CheckCircle, AlertCircle } from 'lucide-react';
 
-interface PackageItem {
-  id: string;
-  description: string;
-  weight: string;
-  dimensions: {
-    length: string;
-    width: string;
-    height: string;
-  };
-  value: string;
-  quantity: number;
+// Types
+interface Location {
+  id: number;
+  name: string;
+  country: string;
+  state: string;
+  city: string;
+  supported_services: string[];
+  is_office: boolean;
 }
 
-const CreateShipmentPage: React.FC = () => {
+interface ServiceLevel {
+  id: number;
+  name: string;
+  description: string;
+  price_multiplier: number;
+  estimated_delivery_days: number;
+}
+
+interface Package {
+  description: string;
+  weight_kg: number;
+  dimensions_cm: string;
+}
+
+interface Address {
+  address_line_1: string;
+  address_line_2?: string;
+  location: number;
+  postal_code: string;
+  landmark?: string;
+  special_instructions?: string;
+}
+
+interface ContactData {
+  full_name: string;
+  phone_number: string;
+  address: Address;
+}
+
+interface ShipmentData {
+  id: number;
+  tracking_number: string;
+  sender_contact: number;
+  receiver_contact: number;
+  service_level: number;
+  packages: Package[];
+  created_at: string;
+  status: string;
+  delivery_type: 'pickup' | 'dropoff';
+  office_location?: number;
+}
+
+// Mock API service
+class ShipmentService {
+  private baseUrl = 'https://linkafrex.onrender.com/api/v1/';
+  private authToken = 'mock_token';
+
+  async getLocations(): Promise<Location[]> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve([
+          { 
+            id: 1, 
+            name: 'Nairobi Main Office', 
+            country: 'Kenya', 
+            state: 'NR', 
+            city: 'Nairobi', 
+            supported_services: ['standard', 'express'],
+            is_office: true
+          },
+          { 
+            id: 2, 
+            name: 'Lagos Warehouse', 
+            country: 'Nigeria', 
+            state: 'LA', 
+            city: 'Lagos', 
+            supported_services: ['standard', 'express', 'overnight'],
+            is_office: true
+          },
+          { 
+            id: 3, 
+            name: 'Kampala', 
+            country: 'Uganda', 
+            state: 'KM', 
+            city: 'Kampala', 
+            supported_services: ['standard', 'express'],
+            is_office: false
+          },
+          { 
+            id: 4, 
+            name: 'Dar es Salaam Branch', 
+            country: 'Tanzania', 
+            state: 'TX', 
+            city: 'Dar es Salaam', 
+            supported_services: ['standard'],
+            is_office: true
+          },
+        ]);
+      }, 500);
+    });
+  }
+
+  async getServiceLevels(): Promise<ServiceLevel[]> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve([
+          { id: 1, name: 'Standard', description: '3-5 business days', price_multiplier: 1.0, estimated_delivery_days: 5 },
+          { id: 2, name: 'Express', description: '1-2 business days', price_multiplier: 1.5, estimated_delivery_days: 2 },
+          { id: 3, name: 'Overnight', description: 'Next business day', price_multiplier: 2.0, estimated_delivery_days: 1 },
+        ]);
+      }, 500);
+    });
+  }
+
+  async createContact(contactData: ContactData & { contact_role: 'sender' | 'receiver' }): Promise<{ id: number }> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ id: Math.floor(Math.random() * 1000) + 100 });
+      }, 800);
+    });
+  }
+
+  async createShipment(shipmentData: Omit<ShipmentData, 'id' | 'tracking_number' | 'created_at'>): Promise<{ id: number; tracking_number: string }> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          id: Math.floor(Math.random() * 1000) + 1000,
+          tracking_number: `SH-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`
+        });
+      }, 1000);
+    });
+  }
+}
+
+const shipmentService = new ShipmentService();
+
+export default function CreateShipmentPage() {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({
-    // Sender Info
-    senderName: '',
-    senderPhone: '',
-    senderEmail: '',
-    senderAddress: '',
-    senderCity: '',
-    senderState: '',
-    senderZip: '',
-    
-    // Recipient Info
-    recipientName: '',
-    recipientPhone: '',
-    recipientEmail: '',
-    recipientAddress: '',
-    recipientCity: '',
-    recipientState: '',
-    recipientZip: '',
-    
-    // Shipment Details
-    serviceType: 'standard',
-    deliveryDate: '',
-    deliveryTime: '',
-    specialInstructions: '',
-    requireSignature: false,
-    insuranceValue: '',
-    
-    // Package Items
-    packages: [{
-      id: '1',
-      description: '',
-      weight: '',
-      dimensions: { length: '', width: '', height: '' },
-      value: '',
-      quantity: 1
-    }] as PackageItem[]
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [serviceLevels, setServiceLevels] = useState<ServiceLevel[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [deliveryType, setDeliveryType] = useState<'pickup' | 'dropoff'>('pickup');
+  const [selectedOffice, setSelectedOffice] = useState<number>(0);
+
+  // Form data
+  const [senderData, setSenderData] = useState<ContactData>({
+    full_name: '',
+    phone_number: '',
+    address: {
+      address_line_1: '',
+      address_line_2: '',
+      location: 0,
+      postal_code: '',
+      landmark: '',
+      special_instructions: ''
+    }
   });
 
-  const addPackage = () => {
-    const newPackage: PackageItem = {
-      id: (formData.packages.length + 1).toString(),
-      description: '',
-      weight: '',
-      dimensions: { length: '', width: '', height: '' },
-      value: '',
-      quantity: 1
-    };
-    setFormData(prev => ({
-      ...prev,
-      packages: [...prev.packages, newPackage]
-    }));
-  };
+  const [receiverData, setReceiverData] = useState<ContactData>({
+    full_name: '',
+    phone_number: '',
+    address: {
+      address_line_1: '',
+      address_line_2: '',
+      location: 0,
+      postal_code: '',
+      landmark: '',
+      special_instructions: ''
+    }
+  });
 
-  const removePackage = (id: string) => {
-    if (formData.packages.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        packages: prev.packages.filter(pkg => pkg.id !== id)
-      }));
+  const [selectedServiceLevel, setSelectedServiceLevel] = useState<number>(0);
+  const [packages, setPackages] = useState<Package[]>([
+    { description: '', weight_kg: 0, dimensions_cm: '' }
+  ]);
+
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  const loadInitialData = async () => {
+    try {
+      setLoading(true);
+      const [locationsData, serviceLevelsData] = await Promise.all([
+        shipmentService.getLocations(),
+        shipmentService.getServiceLevels()
+      ]);
+      setLocations(locationsData);
+      setServiceLevels(serviceLevelsData);
+      // Set default office location if available
+      const defaultOffice = locationsData.find(loc => loc.is_office);
+      if (defaultOffice) {
+        setSelectedOffice(defaultOffice.id);
+      }
+    } catch (err) {
+      setError('Failed to load initial data');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const updatePackage = (id: string, field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      packages: prev.packages.map(pkg => 
-        pkg.id === id ? { ...pkg, [field]: value } : pkg
-      )
-    }));
+  const addPackage = () => {
+    setPackages([...packages, { description: '', weight_kg: 0, dimensions_cm: '' }]);
   };
 
-  const updatePackageDimension = (id: string, dimension: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      packages: prev.packages.map(pkg => 
-        pkg.id === id ? { 
-          ...pkg, 
-          dimensions: { ...pkg.dimensions, [dimension]: value }
-        } : pkg
-      )
-    }));
+  const removePackage = (index: number) => {
+    if (packages.length > 1) {
+      setPackages(packages.filter((_, i) => i !== index));
+    }
+  };
+
+  const updatePackage = (index: number, field: keyof Package, value: string | number) => {
+    const updatedPackages = [...packages];
+    updatedPackages[index] = { ...updatedPackages[index], [field]: value };
+    setPackages(updatedPackages);
+  };
+
+  const validateStep = (step: number): boolean => {
+    switch (step) {
+      case 1:
+        if (deliveryType === 'pickup') {
+          return !!(
+            senderData.full_name && 
+            senderData.phone_number && 
+            senderData.address.address_line_1 && 
+            senderData.address.location > 0 && 
+            senderData.address.postal_code
+          );
+        } else {
+          return selectedOffice > 0;
+        }
+      case 2:
+        return !!(
+          receiverData.full_name && 
+          receiverData.phone_number && 
+          receiverData.address.address_line_1 && 
+          receiverData.address.location > 0 && 
+          receiverData.address.postal_code
+        );
+      case 3:
+        return selectedServiceLevel > 0;
+      case 4:
+        return packages.every(pkg => pkg.description && pkg.weight_kg > 0 && pkg.dimensions_cm);
+      default:
+        return true;
+    }
   };
 
   const nextStep = () => {
-    if (currentStep < 4) setCurrentStep(currentStep + 1);
+    if (validateStep(currentStep)) {
+      setCurrentStep(currentStep + 1);
+      setError(null);
+    } else {
+      setError('Please fill in all required fields');
+    }
   };
 
   const prevStep = () => {
-    if (currentStep > 1) setCurrentStep(currentStep - 1);
+    setCurrentStep(currentStep - 1);
+    setError(null);
   };
 
-  const handleSubmit = () => {
-    // Handle form submission
-    console.log('Shipment created:', formData);
-    alert('Shipment created successfully!');
+  const handleSubmit = async () => {
+    if (!validateStep(4)) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Create sender contact (only needed for pickup)
+      let senderContact = { id: 0 };
+      if (deliveryType === 'pickup') {
+        senderContact = await shipmentService.createContact({
+          ...senderData,
+          contact_role: 'sender'
+        });
+      }
+
+      // Create receiver contact
+      const receiverContact = await shipmentService.createContact({
+        ...receiverData,
+        contact_role: 'receiver'
+      });
+
+      // Create shipment payload
+      const shipmentPayload = {
+        sender_contact: deliveryType === 'pickup' ? senderContact.id : 0,
+        receiver_contact: receiverContact.id,
+        service_level: selectedServiceLevel,
+        packages,
+        created_at: new Date().toISOString(),
+        status: 'processing',
+        delivery_type: deliveryType,
+        office_location: deliveryType === 'dropoff' ? selectedOffice : undefined
+      };
+
+      // Save to mock API
+      const apiResponse = await shipmentService.createShipment(shipmentPayload);
+
+      // Save to localStorage
+      const savedShipments = JSON.parse(localStorage.getItem('shipments') || '[]');
+      const newShipment = {
+        ...shipmentPayload,
+        id: apiResponse.id,
+        tracking_number: apiResponse.tracking_number
+      };
+      const newShipments = [...savedShipments, newShipment];
+      localStorage.setItem('shipments', JSON.stringify(newShipments));
+
+      setSuccess(`Shipment created successfully! Tracking number: ${apiResponse.tracking_number}`);
+      setCurrentStep(5);
+      
+      // Navigate to shipments page after 3 seconds
+      setTimeout(() => navigate('/shipments'), 3000);
+    } catch (err) {
+      setError('Failed to create shipment. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const steps = [
-    { number: 1, title: 'Sender', icon: User },
-    { number: 2, title: 'Recipient', icon: MapPin },
-    { number: 3, title: 'Package Details', icon: Package },
-    { number: 4, title: 'Service & Review', icon: Truck }
-  ];
+  const resetForm = (shouldNavigate = false) => {
+    setCurrentStep(1);
+    setSenderData({
+      full_name: '',
+      phone_number: '',
+      address: {
+        address_line_1: '',
+        address_line_2: '',
+        location: 0,
+        postal_code: '',
+        landmark: '',
+        special_instructions: ''
+      }
+    });
+    setReceiverData({
+      full_name: '',
+      phone_number: '',
+      address: {
+        address_line_1: '',
+        address_line_2: '',
+        location: 0,
+        postal_code: '',
+        landmark: '',
+        special_instructions: ''
+      }
+    });
+    setSelectedServiceLevel(0);
+    setPackages([{ description: '', weight_kg: 0, dimensions_cm: '' }]);
+    setError(null);
+    setSuccess(null);
+    setDeliveryType('pickup');
+    
+    if (shouldNavigate) {
+      navigate('/shipments');
+    }
+  };
 
-  return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-gray-900 to-black border-b border-yellow-500/30 sticky top-0 z-10">
-        <div className="px-4 py-4">
-          <div className="flex items-center space-x-4">
-            <button className="p-2 bg-gray-800 rounded-lg border border-yellow-500/20 hover:border-yellow-500/40 transition-colors">
-              <ArrowLeft className="w-5 h-5 text-yellow-500" />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold">Create New Shipment</h1>
-              <p className="text-sm text-gray-400">Step {currentStep} of 4</p>
-            </div>
-          </div>
-        </div>
-      </header>
+  const renderStepIndicator = () => {
+    const steps = [
+      { number: 1, title: deliveryType === 'pickup' ? 'Pickup Info' : 'Dropoff Info', icon: MapPin },
+      { number: 2, title: 'Receiver Info', icon: User },
+      { number: 3, title: 'Service Level', icon: Truck },
+      { number: 4, title: 'Packages', icon: Package },
+    ];
 
-      {/* Progress Bar */}
-      <div className="px-4 py-4">
-        <div className="flex items-center justify-between mb-6">
-          {steps.map((step, index) => {
-            const Icon = step.icon;
-            const isActive = currentStep === step.number;
-            const isCompleted = currentStep > step.number;
-            
-            return (
-              <div key={step.number} className="flex items-center">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+    return (
+      <div className="flex justify-between mb-8">
+        {steps.map((step, index) => {
+          const Icon = step.icon;
+          const isActive = currentStep === step.number;
+          const isCompleted = currentStep > step.number;
+          
+          return (
+            <div key={step.number} className="flex items-center">
+              <div className={`flex flex-col items-center ${index > 0 ? 'ml-4' : ''}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
                   isCompleted 
-                    ? 'bg-yellow-500 border-yellow-500 text-black'
+                    ? 'bg-[#800000] border-[#800000] text-white' 
                     : isActive 
-                    ? 'border-yellow-500 text-yellow-500'
-                    : 'border-gray-600 text-gray-600'
+                      ? 'border-[#800000] text-[#800000]' 
+                      : 'border-[#D1D5DB] text-[#9CA3AF]'
                 }`}>
                   {isCompleted ? <CheckCircle className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
                 </div>
-                <span className={`ml-2 text-sm font-medium ${
-                  isActive ? 'text-yellow-400' : isCompleted ? 'text-white' : 'text-gray-600'
-                }`}>
+                <span className={`mt-2 text-sm ${isActive ? 'text-[#800000] font-medium' : 'text-[#6B7280]'}`}>
                   {step.title}
                 </span>
-                {index < steps.length - 1 && (
-                  <div className={`w-8 h-0.5 mx-4 ${
-                    isCompleted ? 'bg-yellow-500' : 'bg-gray-600'
-                  }`} />
-                )}
               </div>
-            );
-          })}
+              {index < steps.length - 1 && (
+                <div className={`flex-1 h-0.5 mx-4 ${isCompleted ? 'bg-[#800000]' : 'bg-[#E5E7EB]'}`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderContactForm = (
+    data: ContactData,
+    setData: React.Dispatch<React.SetStateAction<ContactData>>,
+    title: string
+  ) => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-[#1F2937] mb-6">{title}</h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-[#374151] mb-2">Full Name *</label>
+          <input
+            type="text"
+            value={data.full_name}
+            onChange={(e) => setData({ ...data, full_name: e.target.value })}
+            className="w-full px-3 py-2 border border-[#D1D5DB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            placeholder="Enter full name"
+            required
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-[#374151] mb-2">Phone Number *</label>
+          <input
+            type="tel"
+            value={data.phone_number}
+            onChange={(e) => setData({ ...data, phone_number: e.target.value })}
+            className="w-full px-3 py-2 border border-[#D1D5DB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            placeholder="+2547XXXXXXXX"
+            required
+          />
         </div>
       </div>
 
-      {/* Form Content */}
-      <div className="px-4 pb-24">
-        {/* Step 1: Sender Information */}
-        {currentStep === 1 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-yellow-400 mb-4">Sender Information</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="Full Name *"
-                value={formData.senderName}
-                onChange={(e) => setFormData(prev => ({ ...prev, senderName: e.target.value }))}
-                className="bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-              />
-              <input
-                type="tel"
-                placeholder="Phone Number *"
-                value={formData.senderPhone}
-                onChange={(e) => setFormData(prev => ({ ...prev, senderPhone: e.target.value }))}
-                className="bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-              />
-            </div>
-            
-            <input
-              type="email"
-              placeholder="Email Address"
-              value={formData.senderEmail}
-              onChange={(e) => setFormData(prev => ({ ...prev, senderEmail: e.target.value }))}
-              className="w-full bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-            />
-            
-            <input
-              type="text"
-              placeholder="Street Address *"
-              value={formData.senderAddress}
-              onChange={(e) => setFormData(prev => ({ ...prev, senderAddress: e.target.value }))}
-              className="w-full bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-            />
-            
-            <div className="grid grid-cols-3 gap-4">
-              <input
-                type="text"
-                placeholder="City *"
-                value={formData.senderCity}
-                onChange={(e) => setFormData(prev => ({ ...prev, senderCity: e.target.value }))}
-                className="bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="State *"
-                value={formData.senderState}
-                onChange={(e) => setFormData(prev => ({ ...prev, senderState: e.target.value }))}
-                className="bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="ZIP Code *"
-                value={formData.senderZip}
-                onChange={(e) => setFormData(prev => ({ ...prev, senderZip: e.target.value }))}
-                className="bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Recipient Information */}
-        {currentStep === 2 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-yellow-400 mb-4">Recipient Information</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="Full Name *"
-                value={formData.recipientName}
-                onChange={(e) => setFormData(prev => ({ ...prev, recipientName: e.target.value }))}
-                className="bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-              />
-              <input
-                type="tel"
-                placeholder="Phone Number *"
-                value={formData.recipientPhone}
-                onChange={(e) => setFormData(prev => ({ ...prev, recipientPhone: e.target.value }))}
-                className="bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-              />
-            </div>
-            
-            <input
-              type="email"
-              placeholder="Email Address"
-              value={formData.recipientEmail}
-              onChange={(e) => setFormData(prev => ({ ...prev, recipientEmail: e.target.value }))}
-              className="w-full bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-            />
-            
-            <input
-              type="text"
-              placeholder="Street Address *"
-              value={formData.recipientAddress}
-              onChange={(e) => setFormData(prev => ({ ...prev, recipientAddress: e.target.value }))}
-              className="w-full bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-            />
-            
-            <div className="grid grid-cols-3 gap-4">
-              <input
-                type="text"
-                placeholder="City *"
-                value={formData.recipientCity}
-                onChange={(e) => setFormData(prev => ({ ...prev, recipientCity: e.target.value }))}
-                className="bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="State *"
-                value={formData.recipientState}
-                onChange={(e) => setFormData(prev => ({ ...prev, recipientState: e.target.value }))}
-                className="bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="ZIP Code *"
-                value={formData.recipientZip}
-                onChange={(e) => setFormData(prev => ({ ...prev, recipientZip: e.target.value }))}
-                className="bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Package Details */}
-        {currentStep === 3 && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-yellow-400">Package Details</h2>
-              <button
-                onClick={addPackage}
-                className="flex items-center space-x-2 bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-2 rounded-lg font-medium transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Package</span>
-              </button>
-            </div>
-
-            {formData.packages.map((pkg, index) => (
-              <div key={pkg.id} className="bg-gray-900 border border-yellow-500/20 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-white">Package {index + 1}</h3>
-                  {formData.packages.length > 1 && (
-                    <button
-                      onClick={() => removePackage(pkg.id)}
-                      className="text-red-400 hover:text-red-300 transition-colors"
-                    >
-                      <Minus className="w-5 h-5" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="space-y-4">
-                  <input
-                    type="text"
-                    placeholder="Package Description *"
-                    value={pkg.description}
-                    onChange={(e) => updatePackage(pkg.id, 'description', e.target.value)}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <input
-                      type="number"
-                      placeholder="Weight (lbs) *"
-                      value={pkg.weight}
-                      onChange={(e) => updatePackage(pkg.id, 'weight', e.target.value)}
-                      className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Quantity"
-                      value={pkg.quantity}
-                      onChange={(e) => updatePackage(pkg.id, 'quantity', parseInt(e.target.value) || 1)}
-                      className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <input
-                      type="number"
-                      placeholder="Length (in)"
-                      value={pkg.dimensions.length}
-                      onChange={(e) => updatePackageDimension(pkg.id, 'length', e.target.value)}
-                      className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Width (in)"
-                      value={pkg.dimensions.width}
-                      onChange={(e) => updatePackageDimension(pkg.id, 'width', e.target.value)}
-                      className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Height (in)"
-                      value={pkg.dimensions.height}
-                      onChange={(e) => updatePackageDimension(pkg.id, 'height', e.target.value)}
-                      className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-                    />
-                  </div>
-
-                  <input
-                    type="number"
-                    placeholder="Declared Value ($)"
-                    value={pkg.value}
-                    onChange={(e) => updatePackage(pkg.id, 'value', e.target.value)}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Step 4: Service & Review */}
-        {currentStep === 4 && (
-          <div className="space-y-6">
-            <h2 className="text-lg font-semibold text-yellow-400">Service Options & Review</h2>
-
-            {/* Service Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-3">Delivery Service</label>
-              <div className="space-y-3">
-                {[
-                  { value: 'standard', label: 'Standard Delivery', price: '$15.99', time: '3-5 business days' },
-                  { value: 'express', label: 'Express Delivery', price: '$25.99', time: '1-2 business days' },
-                  { value: 'overnight', label: 'Overnight Delivery', price: '$45.99', time: 'Next business day' }
-                ].map((service) => (
-                  <label key={service.value} className="flex items-center p-4 bg-gray-900 border border-gray-700 rounded-lg cursor-pointer hover:border-yellow-500/40 transition-colors">
-                    <input
-                      type="radio"
-                      name="serviceType"
-                      value={service.value}
-                      checked={formData.serviceType === service.value}
-                      onChange={(e) => setFormData(prev => ({ ...prev, serviceType: e.target.value }))}
-                      className="sr-only"
-                    />
-                    <div className={`w-4 h-4 rounded-full border-2 mr-3 ${
-                      formData.serviceType === service.value ? 'border-yellow-500 bg-yellow-500' : 'border-gray-400'
-                    }`}>
-                      {formData.serviceType === service.value && <div className="w-2 h-2 bg-black rounded-full m-0.5" />}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-white">{service.label}</span>
-                        <span className="font-bold text-yellow-400">{service.price}</span>
-                      </div>
-                      <p className="text-sm text-gray-400">{service.time}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Additional Options */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input
-                  type="date"
-                  value={formData.deliveryDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, deliveryDate: e.target.value }))}
-                  className="bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white focus:border-yellow-500 focus:outline-none"
-                />
-                <select
-                  value={formData.deliveryTime}
-                  onChange={(e) => setFormData(prev => ({ ...prev, deliveryTime: e.target.value }))}
-                  className="bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white focus:border-yellow-500 focus:outline-none"
-                >
-                  <option value="">Select Time Window</option>
-                  <option value="morning">Morning (9AM - 12PM)</option>
-                  <option value="afternoon">Afternoon (12PM - 5PM)</option>
-                  <option value="evening">Evening (5PM - 8PM)</option>
-                </select>
-              </div>
-
-              <textarea
-                placeholder="Special delivery instructions..."
-                value={formData.specialInstructions}
-                onChange={(e) => setFormData(prev => ({ ...prev, specialInstructions: e.target.value }))}
-                rows={3}
-                className="w-full bg-gray-900 border border-yellow-500/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none resize-none"
-              />
-
-              <div className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  id="signature"
-                  checked={formData.requireSignature}
-                  onChange={(e) => setFormData(prev => ({ ...prev, requireSignature: e.target.checked }))}
-                  className="w-4 h-4 text-yellow-500 bg-gray-900 border-gray-600 rounded focus:ring-yellow-500"
-                />
-                <label htmlFor="signature" className="text-sm text-gray-300">
-                  Require signature on delivery (+$2.99)
-                </label>
-              </div>
-            </div>
-
-            {/* Summary */}
-            <div className="bg-gray-900 border border-yellow-500/20 rounded-xl p-4">
-              <h3 className="font-semibold text-yellow-400 mb-3">Shipment Summary</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">From:</span>
-                  <span className="text-white">{formData.senderName || 'Sender name'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">To:</span>
-                  <span className="text-white">{formData.recipientName || 'Recipient name'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Packages:</span>
-                  <span className="text-white">{formData.packages.length} package(s)</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Service:</span>
-                  <span className="text-white capitalize">{formData.serviceType} delivery</span>
-                </div>
-                <hr className="border-gray-700 my-2" />
-                <div className="flex justify-between font-semibold">
-                  <span className="text-yellow-400">Total:</span>
-                  <span className="text-yellow-400">$25.99</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-yellow-500/30 p-4">
-        <div className="flex justify-between space-x-4">
-          {currentStep > 1 && (
-            <button
-              onClick={prevStep}
-              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-medium transition-colors"
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-[#1F2937]">Address Information</h3>
+        
+        <div>
+          <label className="block text-sm font-medium text-[#374151] mb-2">Address Line 1 *</label>
+          <input
+            type="text"
+            value={data.address.address_line_1}
+            onChange={(e) => setData({ 
+              ...data, 
+              address: { ...data.address, address_line_1: e.target.value }
+            })}
+            className="w-full px-3 py-2 border border-[#D1D5DB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            placeholder="Street address"
+            required
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-[#374151] mb-2">Address Line 2</label>
+          <input
+            type="text"
+            value={data.address.address_line_2}
+            onChange={(e) => setData({ 
+              ...data, 
+              address: { ...data.address, address_line_2: e.target.value }
+            })}
+            className="w-full px-3 py-2 border border-[#D1D5DB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            placeholder="Apartment, suite, etc."
+          />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-[#374151] mb-2">Location *</label>
+            <select
+              value={data.address.location}
+              onChange={(e) => setData({ 
+                ...data, 
+                address: { ...data.address, location: parseInt(e.target.value) }
+              })}
+              className="w-full px-3 py-2 border border-[#D1D5DB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+              required
             >
-              Previous
-            </button>
-          )}
+              <option value={0}>Select location</option>
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}, {location.state}
+                </option>
+              ))}
+            </select>
+          </div>
           
-          {currentStep < 4 ? (
-            <button
-              onClick={nextStep}
-              className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black py-3 rounded-lg font-medium transition-colors"
-            >
-              Next Step
-            </button>
-          ) : (
-            <button
-              onClick={handleSubmit}
-              className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black py-3 rounded-lg font-medium transition-colors"
-            >
-              Create Shipment
-            </button>
-          )}
+          <div>
+            <label className="block text-sm font-medium text-[#374151] mb-2">Postal Code *</label>
+            <input
+              type="text"
+              value={data.address.postal_code}
+              onChange={(e) => setData({ 
+                ...data, 
+                address: { ...data.address, postal_code: e.target.value }
+              })}
+              className="w-full px-3 py-2 border border-[#D1D5DB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+              placeholder="12345"
+              required
+            />
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-[#374151] mb-2">Landmark</label>
+          <input
+            type="text"
+            value={data.address.landmark}
+            onChange={(e) => setData({ 
+              ...data, 
+              address: { ...data.address, landmark: e.target.value }
+            })}
+            className="w-full px-3 py-2 border border-[#D1D5DB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            placeholder="Near Central Park"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-[#374151] mb-2">Special Instructions</label>
+          <textarea
+            value={data.address.special_instructions}
+            onChange={(e) => setData({ 
+              ...data, 
+              address: { ...data.address, special_instructions: e.target.value }
+            })}
+            className="w-full px-3 py-2 border border-[#D1D5DB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            rows={3}
+            placeholder="Ring doorbell twice, business hours: 9 AM - 5 PM"
+          />
         </div>
       </div>
     </div>
   );
-};
 
-export default CreateShipmentPage;
+  const renderDeliveryTypeSelection = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-[#1F2937] mb-6">
+        {deliveryType === 'pickup' ? 'Pickup Information' : 'Dropoff Information'}
+      </h2>
+
+      <div className="flex space-x-4 mb-6">
+        <button
+          onClick={() => setDeliveryType('pickup')}
+          className={`px-4 py-2 rounded-md border-2 ${
+            deliveryType === 'pickup'
+              ? 'border-[#800000] bg-[#FFF5F5] text-[#800000]'
+              : 'border-[#E5E7EB] text-[#6B7280] hover:border-[#FECACA]'
+          }`}
+        >
+          Pickup From Sender
+        </button>
+        <button
+          onClick={() => setDeliveryType('dropoff')}
+          className={`px-4 py-2 rounded-md border-2 ${
+            deliveryType === 'dropoff'
+              ? 'border-[#800000] bg-[#FFF5F5] text-[#800000]'
+              : 'border-[#E5E7EB] text-[#6B7280] hover:border-[#FECACA]'
+          }`}
+        >
+          Dropoff at Our Office
+        </button>
+      </div>
+
+      {deliveryType === 'pickup' ? (
+        renderContactForm(senderData, setSenderData, "Sender/Pickup Information")
+      ) : (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[#374151] mb-2">Select Office Location *</label>
+            <select
+              value={selectedOffice}
+              onChange={(e) => setSelectedOffice(Number(e.target.value))}
+              className="w-full px-3 py-2 border border-[#D1D5DB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+              required
+            >
+              <option value={0}>Select office location</option>
+              {locations
+                .filter(location => location.is_office)
+                .map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}, {location.city}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div className="bg-[#F9FAFB] p-4 rounded-md">
+            <h3 className="font-medium text-[#1F2937] mb-2">Office Dropoff Instructions</h3>
+            <p className="text-sm text-[#6B7280]">
+              Please bring your package to the selected office during business hours (9AM-5PM, Monday-Friday).
+              Ensure all items are properly packaged and labeled with the receiver's information.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderReceiverForm = () => (
+    renderContactForm(receiverData, setReceiverData, "Receiver Information")
+  );
+
+  const renderServiceLevelSelection = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-[#1F2937] mb-6">Select Service Level</h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {serviceLevels.map((service) => (
+          <div
+            key={service.id}
+            className={`p-6 border-2 rounded-lg cursor-pointer transition-all ${
+              selectedServiceLevel === service.id
+                ? 'border-[#800000] bg-[#FFF5F5]'
+                : 'border-[#E5E7EB] hover:border-[#FECACA]'
+            }`}
+            onClick={() => setSelectedServiceLevel(service.id)}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-[#1F2937]">{service.name}</h3>
+              <div className={`w-4 h-4 rounded-full border-2 ${
+                selectedServiceLevel === service.id
+                  ? 'border-[#800000] bg-[#800000]'
+                  : 'border-[#D1D5DB]'
+              }`} />
+            </div>
+            <p className="text-[#4B5563] mb-2">{service.description}</p>
+            <p className="text-sm text-[#6B7280]">
+              Price multiplier: {service.price_multiplier}x
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderPackageForm = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-[#1F2937]">Package Information</h2>
+        <button
+          onClick={addPackage}
+          className="flex items-center px-4 py-2 bg-[#800000] text-white rounded-md hover:bg-[#9B2C2C] transition-colors"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Package
+        </button>
+      </div>
+      
+      <div className="space-y-4">
+        {packages.map((pkg, index) => (
+          <div key={index} className="p-4 border border-[#E5E7EB] rounded-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-[#1F2937]">Package {index + 1}</h3>
+              {packages.length > 1 && (
+                <button
+                  onClick={() => removePackage(index)}
+                  className="text-[#DC2626] hover:text-[#B91C1C]"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-[#374151] mb-2">Description *</label>
+                <input
+                  type="text"
+                  value={pkg.description}
+                  onChange={(e) => updatePackage(index, 'description', e.target.value)}
+                  className="w-full px-3 py-2 border border-[#D1D5DB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+                  placeholder="Books and clothes"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-[#374151] mb-2">Weight (kg) *</label>
+                <input
+                  type="number"
+                  value={pkg.weight_kg}
+                  onChange={(e) => updatePackage(index, 'weight_kg', parseFloat(e.target.value) || 0)}
+                  className="w-full px-3 py-2 border border-[#D1D5DB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+                  placeholder="5.5"
+                  min="0"
+                  step="0.1"
+                  required
+                />
+              </div>
+              
+              <div className="md:col-span-3">
+                <label className="block text-sm font-medium text-[#374151] mb-2">Dimensions (cm) *</label>
+                <input
+                  type="text"
+                  value={pkg.dimensions_cm}
+                  onChange={(e) => updatePackage(index, 'dimensions_cm', e.target.value)}
+                  className="w-full px-3 py-2 border border-[#D1D5DB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+                  placeholder="30x20x15"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderSuccessPage = () => (
+    <div className="text-center space-y-6">
+      <div className="flex justify-center">
+        <CheckCircle className="w-16 h-16 text-[#10B981]" />
+      </div>
+      <h2 className="text-3xl font-bold text-[#1F2937]">Shipment Created Successfully!</h2>
+      <div className="bg-[#ECFDF5] border border-[#D1FAE5] rounded-lg p-6">
+        <p className="text-[#065F46] font-medium">{success}</p>
+        <p className="text-sm mt-2">
+          Delivery Type: {deliveryType === 'pickup' ? 'Pickup from sender' : `Dropoff at ${locations.find(l => l.id === selectedOffice)?.name}`}
+        </p>
+      </div>
+      <button
+        onClick={() => resetForm(true)}
+        className="px-6 py-3 bg-[#800000] text-white rounded-md hover:bg-[#9B2C2C] transition-colors"
+      >
+        View All Shipments
+      </button>
+    </div>
+  );
+
+  if (loading && currentStep === 1) {
+    return (
+      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#800000] mx-auto mb-4"></div>
+          <p className="text-[#6B7280]">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="bg-white shadow-sm">
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          <h1 className="text-3xl font-bold text-[#1F2937]">Create New Shipment</h1>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {currentStep < 5 && renderStepIndicator()}
+        
+        {error && (
+          <div className="mb-6 bg-[#FEF2F2] border border-[#FECACA] rounded-lg p-4 flex items-center">
+            <AlertCircle className="w-5 h-5 text-[#DC2626] mr-2" />
+            <p className="text-[#B91C1C]">{error}</p>
+          </div>
+        )}
+
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          {currentStep === 1 && renderDeliveryTypeSelection()}
+          {currentStep === 2 && renderReceiverForm()}
+          {currentStep === 3 && renderServiceLevelSelection()}
+          {currentStep === 4 && renderPackageForm()}
+          {currentStep === 5 && renderSuccessPage()}
+        </div>
+
+        {currentStep < 5 && (
+          <div className="flex justify-between mt-8">
+            <button
+              onClick={prevStep}
+              disabled={currentStep === 1}
+              className={`px-6 py-3 rounded-md transition-colors ${
+                currentStep === 1
+                  ? 'bg-[#E5E7EB] text-[#9CA3AF] cursor-not-allowed'
+                  : 'bg-[#4B5563] text-white hover:bg-[#374151]'
+              }`}
+            >
+              Previous
+            </button>
+            
+            {currentStep < 4 ? (
+              <button
+                onClick={nextStep}
+                className="px-6 py-3 bg-[#800000] text-white rounded-md hover:bg-[#9B2C2C] transition-colors"
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="px-6 py-3 bg-[#800000] text-white rounded-md hover:bg-[#9B2C2C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Creating Shipment...
+                  </>
+                ) : (
+                  'Create Shipment'
+                )}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
